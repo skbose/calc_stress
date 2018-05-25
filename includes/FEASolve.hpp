@@ -7,11 +7,14 @@
 #define PARDISO_SOLVER_IS_AVAILABLE
 #define NUM_COMPUTE_THREADS 1
 
-#include <VegaHeaders.hpp>
+#include "VegaHeaders.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <assert.h>
+
+#include "SimulatorApp.hpp"
+
 
 using namespace std;
 
@@ -88,6 +91,9 @@ class FEASolve
 		// misc bool variables for error checking.
 		bool isInitImplicitBackwardEulerSparse;
 
+		// Applet pointer - free later.
+		SimulatorApp *appPtr;
+
 
 		// used to init common data - not required as of now.
 		// void initCommon();
@@ -116,7 +122,7 @@ class FEASolve
 		void RemoveSixRigidModes(int numVectors, double * x);
 
 	public:
-		FEASolve();						// default constructor
+		FEASolve(SimulatorApp * ptr);	// param constructor - ptr read to access opts.
 		~FEASolve();					// destructor
 
 		bool initImplicitBackwardEulerSparse();
@@ -128,7 +134,7 @@ class FEASolve
 		// getters
 		int getNumVertices() const;
 		// num elements is only relevant to volumetric meshes.
-		// int getNumElements() const;
+		int getNumElements() const;
 		// returns the total absolute strain energy of the 3d model under strain.
 		double getAbsoluteStrainEnergy() const;
 		// returns the magnitude of maximum strain energy of all vertices.

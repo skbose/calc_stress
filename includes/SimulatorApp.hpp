@@ -1,3 +1,7 @@
+#ifndef __SimulatorApp__hpp__
+#define __SimulatorApp__hpp__
+
+
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <fstream>
@@ -60,3 +64,5 @@ class SimulatorApp
 		private:
 	    	Options opts;
 };
+
+#endif

@@ -1,4 +1,4 @@
-#include <SimulatorApp.hpp>
+#include "../includes/SimulatorApp.hpp"
 
 // options struct constructor
 SimulatorApp::Options::Options() {}

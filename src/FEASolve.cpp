@@ -1,5 +1,10 @@
-FEASolve::FEASolve()
+#include "../includes/FEASolve.hpp"
+
+FEASolve::FEASolve(SimulatorApp * ptr)
 {
+	// pointer to the simulator app object
+	appPtr = ptr;
+
 	volumetricMesh = NULL;
 	pvEnergy = NULL;
 	u = NULL;
@@ -46,13 +51,15 @@ FEASolve::FEASolve()
 
 	// TODO: set a default value for this variable by consulting the 
 	// computationRunning = <some-default-value>
+
+	cout << "\nSolver object initialized.\n";
 }
 
 bool FEASolve::initImplicitBackwardEulerSparse()
 {
 	isInitImplicitBackwardEulerSparse = true;
 
-	volumetricMesh = VolumetricMeshLoader::load(opts.in_veg_file_path.c_str());
+	volumetricMesh = VolumetricMeshLoader::load((appPtr->opts).in_veg_file_path.c_str());
 
 	if (volumetricMesh == NULL)
 	{
@@ -145,7 +152,7 @@ bool FEASolve::runImplicitBackwardEulerSparse()
 	double dampingStiffnessCoef = 0.0; // (primarily) high-frequency damping
 
 	// expand the constrained DOFs from the constrained vertices list. for now, all the x, y, z dirs are fixed.
-	int numConstrainedDOFs = numConstrainedVertices * 3;
+	int numConstrainedDOFs = numFixedVertices * 3;
 	int *constrainedDOFs = (int *)malloc(sizeof(int) * numConstrainedDOFs);
 
 	int oneIndexed = 0;
@@ -158,12 +165,12 @@ bool FEASolve::runImplicitBackwardEulerSparse()
 
 	// initialize the integrator
 	ImplicitBackwardEulerSparse * implicitBackwardEulerSparse = new
-	ImplicitBackwardEulerSparse(r, opts.timestep, massMatrix, forceModel, numConstrainedDOFs, constrainedDOFs, dampingMassCoef, dampingStiffnessCoef);
+	ImplicitBackwardEulerSparse(r, (appPtr->opts).in_timestep, massMatrix, forceModel, numConstrainedDOFs, constrainedDOFs, dampingMassCoef, dampingStiffnessCoef);
 
 	implicitBackwardEulerSparse->SetExternalForcesToZero();
 
 	// simulation main loop
-	for (int i = 0; i < opts.steps; i++)
+	for (int i = 0; i < (appPtr->opts).in_steps; i++)
 	{
 		cout << "Simulating step " << i << endl;
 		if (i == 0) // set some force at the first timestep
@@ -191,7 +198,7 @@ bool FEASolve::readFixedVertices(int oneIndexed)
 		return false;
 	}
 
-	LoadList::load(opts.in_fixed_vertices_file_path.c_str(), &numFixedVertices, &constrainedVertexList);
+	LoadList::load((appPtr->opts).in_fixed_vertices_file_path.c_str(), &numFixedVertices, &constrainedVertexList);
 	std::cout << "Number of constrained vertices read: " << numFixedVertices << std::endl;
 
 	return true;
@@ -268,4 +275,41 @@ int FEASolve::getNumVertices() const
 	{
 		cout << "Error: No model loaded yet!\n";
 	}
+}
+
+int FEASolve::getNumElements() const
+{
+	if (volumetricMesh)
+	{
+		return volumetricMesh->getNumElements();
+	}
+	else
+	{
+		cout << "\nError: Surface deformation active.\n";
+		return -1;
+	}
+}
+
+void FEASolve::resetVector(double *vec, int num)
+{
+	memset(vec, 0, num);
+}
+
+FEASolve::~FEASolve()
+{
+	if (pvEnergy)
+	{
+		free(pvEnergy);
+		pvEnergy = NULL;
+	}
+	if (u)
+	{
+		free(u);
+		u = NULL;
+	}
+	if (constrainedVertexList)
+	{	
+		free(constrainedVertexList);
+		constrainedVertexList = NULL;
+	}	
 }
