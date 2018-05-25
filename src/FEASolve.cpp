@@ -181,7 +181,7 @@ bool FEASolve::runImplicitBackwardEulerSparse()
 	}
 
 	// simulation ended. calculate the deformations.
-	// calculateDisplacements(implicitBackwardEulerSparse);
+	calculateDisplacements(implicitBackwardEulerSparse);
 
 	// no more in use - solver ended execution.
 	free(constrainedDOFs);
@@ -206,14 +206,25 @@ bool FEASolve::readFixedVertices(int oneIndexed)
 
 bool FEASolve::calculateDisplacements(ImplicitBackwardEulerSparse *implicitBackwardEulerSparse)
 {
+	if (u)
+	{
+		free(u); u = NULL;
+	}
+
 	u = (double*) malloc (sizeof(double) * r);
 	implicitBackwardEulerSparse->GetqState(u);
 
 	return true;
 }
 
-bool FEASolve::calculatePerVertexEnergy(ImplicitBackwardEulerSparse *implicitBackwardEulerSparse)
+bool FEASolve::calculatePerVertexEnergy()
 {
+	if (pvEnergy)
+	{
+		free(pvEnergy);
+		pvEnergy = NULL;
+	}
+
 	StVKElementABCD * stvk_element = StVKElementABCDLoader::load(volumetricMesh);
 	StVKInternalForces * stvk = new StVKInternalForces(volumetricMesh, stvk_element, true);
 
@@ -312,4 +323,14 @@ FEASolve::~FEASolve()
 		free(constrainedVertexList);
 		constrainedVertexList = NULL;
 	}	
+}
+
+double FEASolve::getAbsoluteStrainEnergy() const
+{
+	return totalStrainEnergy;
+}
+
+double FEASolve::getMaximumStrainEnergy() const
+{
+	return maxStrainEnergy;
 }

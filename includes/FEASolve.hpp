@@ -103,8 +103,7 @@ class FEASolve
 		bool calculateDisplacements(ImplicitBackwardEulerSparse *implicitBackwardEulerSparse);
 		// calculate the displacements for the implicit newmark dense solver.
 		bool calculateDisplacements(ImplicitNewmarkDense *implicitNewmarkDense);
-		// calculate the per vertex energy for implicit backward euler solver
-		bool calculatePerVertexEnergy(ImplicitBackwardEulerSparse *implicitBackwardEulerSparse);
+		
 		void applyDeformation(double *u);
 
 		// misc helpers
@@ -142,6 +141,9 @@ class FEASolve
 		// returns the original mass (in case of volumetric mesh)
 		// returns the mass estimate (in case of surface mesh)
 		double getMass() const;
+
+		// calculate the per vertex energy for implicit backward euler solver
+		bool calculatePerVertexEnergy();
 
 		// save methods
 		// provide filename as "<filename>.pts"
