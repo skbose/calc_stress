@@ -22,7 +22,8 @@ int main(int argc, char * argv[])
 	}
 	else if (opts_.in_fast)
 	{
-		cout << "\nTODO\n";
+		FEASolve solv(&sim);
+		solv.initImplicitNewmarkDense();
 	}
 	
 	return 0;

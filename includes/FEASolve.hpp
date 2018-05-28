@@ -12,6 +12,7 @@
 #include <fstream>
 #include <sstream>
 #include <assert.h>
+#include <ctime>
 
 #include "SimulatorApp.hpp"
 
@@ -31,6 +32,8 @@ class FEASolve
 		/* solver parameters: */
 		int numFixedVertices;
 		int *constrainedVertexList;		// list of constrained vertex IDs
+		int numSupportVertices;
+		int *supportVerticesList;
 		double totalStrainEnergy, maxStrainEnergy;
 		double *u;						// list of deformation values. u_x, u_y, u_z for each v_i.
 		double *pvEnergy;				// per vertex energy calculated from the deformation values (u).
@@ -88,8 +91,12 @@ class FEASolve
 		// force vector. f_x, f_y, f_z for every vertex in the 3d model.
 		double *f;
 
+		// reduced force vector and spring force vector (reduced model)
+		double *fq, *springForce;
+
 		// misc bool variables for error checking.
 		bool isInitImplicitBackwardEulerSparse;
+		bool isInitImplicitNewmarkDense;
 
 		// Applet pointer - free later.
 		SimulatorApp *appPtr;
@@ -104,7 +111,7 @@ class FEASolve
 		// calculate the displacements for the implicit newmark dense solver.
 		bool calculateDisplacements(ImplicitNewmarkDense *implicitNewmarkDense);
 		
-		void applyDeformation(double *u);
+		void applyDeformation(std::string const &path, double *u, bool is_surf) const;
 
 		// misc helpers
 		void resetVector(double *vec, int size);
@@ -129,6 +136,8 @@ class FEASolve
 		bool runImplicitBackwardEulerSparse();
 
 		bool initImplicitNewmarkDense();
+		bool destroyImplicitNewmarkDense();
+		bool runImplicitNewmarkDense();
 
 		// getters
 		int getNumVertices() const;
@@ -150,8 +159,8 @@ class FEASolve
 		bool saveFixedVerticesPointCloud(std::string const &path) const;
 		bool saveSurfaceMesh(std::string const &path) const;
 		bool saveVolumetricMesh(std::string const &path) const {;}
-		bool applyDeformationAndSaveVolumetricMesh() const {;}
-		bool applyDeformationAndSaveSurfaceMesh(std::string const &path) const;
+		void applyDeformationAndSaveVolumetricMesh(std::string const &path) const;
+		void applyDeformationAndSaveSurfaceMesh(std::string const &path) const;
 		bool saveModalDerivatives(std::string const &path) const;
 		bool saveLinearModes(std::string const &path) const;
 		bool savePerVertexEnergy(std::string const &path) const;
@@ -160,5 +169,24 @@ class FEASolve
 		bool saveCustomDeformationsPerVertex(std::string const &path) const {;}
 		bool saveDeformationsPerVertex(std::string const &path) const;
 };
+
+// misc helper classes
+class Timer
+{
+	public:
+	    Timer() { clock_gettime(CLOCK_REALTIME, &beg_); }
+
+	    double elapsed() {
+	        clock_gettime(CLOCK_REALTIME, &end_);
+	        return end_.tv_sec - beg_.tv_sec +
+	            (end_.tv_nsec - beg_.tv_nsec) / 1000000000.;
+	    }
+
+	    void reset() { clock_gettime(CLOCK_REALTIME, &beg_); }
+
+	private:
+	    timespec beg_, end_;
+};
+
 
 #endif 	// FEASolve.hpp header ends here.

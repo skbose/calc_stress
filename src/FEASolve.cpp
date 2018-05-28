@@ -11,6 +11,7 @@ FEASolve::FEASolve(SimulatorApp * ptr)
 	massMatrix = NULL;
 	tetMesh = NULL;
 	constrainedVertexList = NULL;
+	supportVerticesList = NULL;
 	deformableModel = NULL;
 
 	// linear modes
@@ -40,10 +41,11 @@ FEASolve::FEASolve(SimulatorApp * ptr)
 
 	// other misc variables
 	mass = 0.0;
-	numFixedVertices = -1;
+	numFixedVertices = numSupportVertices = -1;
 	totalStrainEnergy = maxStrainEnergy = -1;
 	visualMesh = NULL;
 	f = NULL;		// needs a "free" call.
+	fq = springForce = NULL;	// needs a "free" call
 
 	nRendering = -1;
 	URenderingFloat = NULL;
@@ -308,6 +310,15 @@ void FEASolve::resetVector(double *vec, int num)
 
 FEASolve::~FEASolve()
 {
+	if ((appPtr->opts).in_fast)
+	{
+		destroyImplicitNewmarkDense();
+	}
+	else
+	{
+		destroyImplicitBackwardEulerSparse();
+	}
+
 	if (pvEnergy)
 	{
 		free(pvEnergy);
@@ -333,4 +344,277 @@ double FEASolve::getAbsoluteStrainEnergy() const
 double FEASolve::getMaximumStrainEnergy() const
 {
 	return maxStrainEnergy;
+}
+
+void FEASolve::applyDeformation(std::string const &path, double *u, bool is_surf) const
+{
+	if (!is_surf)
+	{
+		volumetricMesh->applyDeformation(u);
+		volumetricMesh->save(path.c_str());
+	}
+	else
+	{
+		visualMesh->deform(u);
+  		visualMesh->save(path.c_str());
+	}
+}
+
+void FEASolve::applyDeformationAndSaveVolumetricMesh(std::string const &path) const
+{
+	applyDeformation(path, u, false);
+}
+
+void FEASolve::applyDeformationAndSaveSurfaceMesh(std::string const &path) const
+{
+	applyDeformation(path, u, true);
+}
+
+double FEASolve::getMass() const
+{
+	// TOOD
+	// mass estimate for surface mesh has to be estimated.
+	return mass;
+}
+
+
+bool FEASolve::initImplicitNewmarkDense()
+{
+	isInitImplicitNewmarkDense = true;
+
+	ReadMatrixFromDisk_((appPtr->opts).in_modal_matrix_file_path.c_str(),&nRendering,&r,&URenderingFloat);
+	nRendering /= 3;
+	cout << "Number of vertices (read from Modal Matrix): " << nRendering << ", r: " << r << endl;
+
+	double * URendering = (double*) malloc (sizeof(double) * 3 * nRendering * r);
+	
+	for(int i=0; i < 3 * nRendering * r; i++)
+		URendering[i] = URenderingFloat[i];
+	free(URenderingFloat);
+	
+	renderingModalMatrix = new ModalMatrix(nRendering,r,URendering);
+	free(URendering); // ModalMatrix made an internal copy
+	
+	deformableObjectRenderingMeshCPU = new SceneObjectReducedCPU((appPtr->opts).in_rendering_mesh_file_path.c_str(), renderingModalMatrix);
+	deformableObjectRenderingMeshReduced = deformableObjectRenderingMeshCPU;
+
+	// store a separate copy for viewing the simulation output.
+	visualMesh = new ObjMesh((appPtr->opts).in_rendering_mesh_file_path);
+
+	// use the fixed vertices reading module to read the support vertices
+	// remember to set them to NULL after copying data.
+	// vertices "0" indexed.
+	bool success = readFixedVertices(0);
+	
+	if (!success)
+	{
+		printf("Could not read fixed vertices file. Please check filename.\n");
+		// free solver variables.
+		destroyImplicitNewmarkDense();
+		return false;
+	}
+
+	numSupportVertices = numFixedVertices;
+	numFixedVertices = -1;
+
+	supportVerticesList = constrainedVertexList; 
+	constrainedVertexList = NULL;
+
+	f = (double*) malloc (sizeof(double) * 3 * nRendering);
+	fq = (double *) malloc (sizeof(double) * r);
+	springForce = (double *) malloc(sizeof(double) * 3 * nRendering);
+	
+	// flush the force vector to zero
+	for (int i = 0; i < 3 * nRendering; i++)
+	{
+		f[i] = 0;
+		springForce[i] = 0;
+	}
+
+	// init fq to zero
+	for (int i = 0; i < r; i++)
+		fq[i] = 0;
+	
+	// TODO: SDF based gravity force.
+	double const gp_per_vertex = (mass * 9.81 * 10) / (double)nRendering;
+	for (int i = 0; i < 3 * nRendering; i += 3)
+		f[i + 1] = -gp_per_vertex;
+
+	renderingModalMatrix->ProjectSingleVertex(0, f[0], f[1], f[2], fq);
+	
+	for (int pulledVertex = 3; pulledVertex < 3 * nRendering; pulledVertex += 3)
+		renderingModalMatrix->AddProjectSingleVertex(pulledVertex/3,
+           	f[pulledVertex], f[pulledVertex + 1], f[pulledVertex + 2], fq);
+
+	return true;
+}
+
+bool FEASolve::destroyImplicitNewmarkDense()
+{
+	if (f)
+	{
+		free(f); f = NULL;
+	}
+
+	if (fq)
+	{
+		free(fq); fq = NULL;
+	}
+
+	if (springForce)
+	{
+		free(springForce); springForce = NULL;
+	}
+
+	if (supportVerticesList)
+	{
+		free(supportVerticesList);
+		supportVerticesList = NULL;
+	}
+
+	if (renderingModalMatrix)
+	{
+		free(renderingModalMatrix);
+		renderingModalMatrix = NULL;
+	}
+
+	if (deformableObjectRenderingMeshCPU)
+	{
+		free(deformableObjectRenderingMeshCPU);
+		deformableObjectRenderingMeshCPU = NULL;
+	}
+
+	if (deformableObjectRenderingMeshReduced)
+	{
+		free(deformableObjectRenderingMeshReduced);
+		deformableObjectRenderingMeshReduced = NULL;
+	}
+
+	if (visualMesh)
+	{
+		free(visualMesh);
+		visualMesh = NULL;
+	}
+}
+
+bool FEASolve::runImplicitNewmarkDense()
+{
+
+	if (!isInitImplicitNewmarkDense)
+		if	(!initImplicitNewmarkDense())
+		{	
+			printf("Error: init method failed for implicit newmark dense solver!\n");
+			return false;
+		}
+
+	double * massMatrix = (double*) calloc(r*r,sizeof(double));
+
+  	for(int i = 0; i < r; i++)
+  	{	
+    	massMatrix[ELT(r,i,i)] = 1.0;
+  	}
+
+    StVKReducedInternalForces *stVKReducedInternalForces = new StVKReducedInternalForces((appPtr->opts).in_cubic_polynomial_file_path.c_str());
+    StVKReducedStiffnessMatrix *stVKReducedStiffnessMatrix = new StVKReducedStiffnessMatrix(stVKReducedInternalForces);
+
+   	ReducedStVKForceModel *reducedStVKForceModel = new ReducedStVKForceModel(stVKReducedInternalForces, stVKReducedStiffnessMatrix);
+  	ReducedLinearStVKForceModel *reducedLinearStVKForceModel = new ReducedLinearStVKForceModel(stVKReducedStiffnessMatrix);
+  	ReducedForceModel *reducedForceModel = reducedStVKForceModel;
+
+	float const newmarkBeta = 0.25;
+	float const newmarkGamma = 0.5;
+	float const timestep = appPtr->opts.in_timestep;
+  	
+  	ImplicitNewmarkDense *implicitNewmarkDense = new ImplicitNewmarkDense(r, timestep, massMatrix, reducedForceModel);
+
+  	implicitNewmarkDense->SetExternalForcesToZero();
+
+  	double * u_prev = (double *) malloc(sizeof(double) * 3 * nRendering);
+
+	implicitNewmarkDense->SetTimestep(timestep);
+	implicitNewmarkDense->SetNewmarkBeta(newmarkBeta);
+	implicitNewmarkDense->SetNewmarkGamma(newmarkGamma);
+
+	Timer tmr;
+
+	double springconst = 10000;	// spring constant
+	double velocitydampingconst = 5;	// velocity damping constant
+
+	for (int i = 0; i < (appPtr->opts).in_steps; i++)
+	{
+		// cout << "Simulating step " << i << endl;
+		if (i == 0) // set some force at the first timestep
+		{
+			implicitNewmarkDense->SetExternalForces(fq);
+		}
+		
+		implicitNewmarkDense->DoTimestep();
+
+		// flush existing forces to zero
+		for (int k = 0; k < r; k++)
+			fq[k] = 0;
+
+		// // flush spring forces
+		for (int vertex_i = 0; vertex_i < nRendering; vertex_i++)
+		{
+			springForce[3*vertex_i + 0] = 0;
+			springForce[3*vertex_i + 1] = 0;
+			springForce[3*vertex_i + 2] = 0;
+		}
+
+		// update the forces acting on the fixed vertices everytime.
+		calculateDisplacements(implicitNewmarkDense);
+
+		for (int vertex_i = 0; vertex_i < numFixedVertices; vertex_i++)
+		{
+			int v = constrainedVertexList[vertex_i];
+			springForce[3*v + 0] = -springconst * u[3*v + 0] - velocitydampingconst * (u[3*v + 0] - u_prev[3*v + 0]) / timestep;
+			springForce[3*v + 1] = -springconst * u[3*v + 1] - velocitydampingconst * (u[3*v + 1] - u_prev[3*v + 1]) / timestep;
+			springForce[3*v + 2] = -springconst * u[3*v + 2] - velocitydampingconst * (u[3*v + 2] - u_prev[3*v + 2]) / timestep;
+
+			u_prev[3*v + 0] = u[3*v + 0];
+			u_prev[3*v + 1] = u[3*v + 1];
+			u_prev[3*v + 2] = u[3*v + 2];
+ 	 	}
+
+ 	 	// Adding up spring force and gravity force
+ 	 	for (int vertex_i = 0; vertex_i < 3 * nRendering; vertex_i += 3)
+ 	 	{	
+ 	 		springForce[vertex_i + 0] += f[vertex_i + 0];
+ 	 		springForce[vertex_i + 1] += f[vertex_i + 1];
+ 	 		springForce[vertex_i + 2] += f[vertex_i + 2];
+ 	 	}
+
+ 	 	renderingModalMatrix->ProjectSingleVertex(0, springForce[0], springForce[1], springForce[2], fq);
+	
+		for (int pulledVertex = 3; pulledVertex < 3 * nRendering; pulledVertex += 3)
+			renderingModalMatrix->AddProjectSingleVertex(pulledVertex/3,
+           		springForce[pulledVertex], springForce[pulledVertex + 1], springForce[pulledVertex + 2], fq);
+
+ 	 	implicitNewmarkDense->SetExternalForcesToZero();
+ 	 	implicitNewmarkDense->SetExternalForces(fq);
+	}
+
+	double t = tmr.elapsed();
+	cout << "Time to run the solver: " << t << endl;
+
+	calculateDisplacements(implicitNewmarkDense);
+}
+
+bool FEASolve::calculateDisplacements(ImplicitNewmarkDense *implicitNewmarkDense)
+{
+	double * q = (double *) malloc (sizeof(double) * r);
+
+	memcpy(q, implicitNewmarkDense->Getq(), sizeof(double) * r);
+
+	deformableObjectRenderingMeshReduced->Setq(q);
+  	deformableObjectRenderingMeshReduced->Compute_uUq();
+
+  	if (u == NULL)
+  		u = (double *) malloc(sizeof(double) * nRendering * 3);
+  	deformableObjectRenderingMeshReduced->Getu(u);
+	
+	free(q);
+
+	return true;
 }

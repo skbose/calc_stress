@@ -298,24 +298,7 @@ void FEASolve::saveDeformedMesh(string filename)
 	volumetricMesh->save(filename.c_str());
 }
 
-FEASolve::~FEASolve()
-{
-	if (pvEnergy)
-	{
-		free(pvEnergy);
-		pvEnergy = NULL;
-	}
-	if (u)
-	{
-		free(u);
-		u = NULL;
-	}
-	if (constrainedVertexList)
-	{	
-		free(constrainedVertexList);
-		constrainedVertexList = NULL;
-	}	
-}
+
 
 bool FEASolve::saveFixedVerticesPointCloud(std::string const &path)
 {
