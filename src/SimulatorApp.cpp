@@ -154,7 +154,7 @@ SimulatorApp::parseOptions(std::vector<std::string> const & args)
 		{	
 			if (!opts.in_preprocess)
 			{
-				std::cout << "Please provide the cub file and modal matrix for the reduced system (or turn ON the preprocess flag).\n";
+				std::cout << "Please provide the cub file, modal matrix and simulation mesh for the reduced system (or turn ON the preprocess flag).\n";
 				std::cout << usage << std::endl;
 				std::cout << visible << std::endl;
 				// std::cout << visible;
@@ -165,6 +165,7 @@ SimulatorApp::parseOptions(std::vector<std::string> const & args)
 		{
 			opts.in_cubic_polynomial_file_path = Thea::FileSystem::resolve(opts.in_cubic_polynomial_file_path);
 			opts.in_simulation_mesh_file_path = Thea::FileSystem::resolve(opts.in_simulation_mesh_file_path);
+			opts.in_rendering_mesh_file_path = opts.in_simulation_mesh_file_path;
 			opts.in_modal_matrix_file_path = Thea::FileSystem::resolve(opts.in_modal_matrix_file_path);
 		}
 	}

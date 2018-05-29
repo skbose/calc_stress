@@ -174,7 +174,7 @@ bool FEASolve::runImplicitBackwardEulerSparse()
 	// simulation main loop
 	for (int i = 0; i < (appPtr->opts).in_steps; i++)
 	{
-		cout << "Simulating step " << i << endl;
+		// cout << "Simulating step " << i << endl;
 		if (i == 0) // set some force at the first timestep
 		{
 			implicitBackwardEulerSparse->SetExternalForces(f);
@@ -436,7 +436,7 @@ bool FEASolve::initImplicitNewmarkDense()
 		fq[i] = 0;
 	
 	// TODO: SDF based gravity force.
-	double const gp_per_vertex = (mass * 9.81 * 10) / (double)nRendering;
+	double const gp_per_vertex = -(mass * 9.81 * 10) / (double)nRendering;
 	for (int i = 0; i < 3 * nRendering; i += 3)
 		f[i + 1] = -gp_per_vertex;
 
@@ -472,29 +472,32 @@ bool FEASolve::destroyImplicitNewmarkDense()
 		supportVerticesList = NULL;
 	}
 
-	if (renderingModalMatrix)
-	{
-		free(renderingModalMatrix);
-		renderingModalMatrix = NULL;
-	}
+	// if (renderingModalMatrix)
+	// {
+	// 	free(renderingModalMatrix);
+	// 	renderingModalMatrix = NULL;
+	// }
 
-	if (deformableObjectRenderingMeshCPU)
-	{
-		free(deformableObjectRenderingMeshCPU);
-		deformableObjectRenderingMeshCPU = NULL;
-	}
+	// if (deformableObjectRenderingMeshCPU)
+	// {
+	// 	free(deformableObjectRenderingMeshCPU);
+	// 	deformableObjectRenderingMeshCPU = NULL;
+	// }
 
-	if (deformableObjectRenderingMeshReduced)
-	{
-		free(deformableObjectRenderingMeshReduced);
-		deformableObjectRenderingMeshReduced = NULL;
-	}
+	// if (deformableObjectRenderingMeshReduced)
+	// {
+	// 	free(deformableObjectRenderingMeshReduced);
+	// 	deformableObjectRenderingMeshReduced = NULL;
+	// }
 
-	if (visualMesh)
-	{
-		free(visualMesh);
-		visualMesh = NULL;
-	}
+	// if (visualMesh)
+	// {
+	// 	free(visualMesh);
+	// 	visualMesh = NULL;
+	// }
+
+	isInitImplicitNewmarkDense = false;
+
 }
 
 bool FEASolve::runImplicitNewmarkDense()
@@ -542,7 +545,7 @@ bool FEASolve::runImplicitNewmarkDense()
 
 	for (int i = 0; i < (appPtr->opts).in_steps; i++)
 	{
-		// cout << "Simulating step " << i << endl;
+		cout << "Simulating step " << i << endl;
 		if (i == 0) // set some force at the first timestep
 		{
 			implicitNewmarkDense->SetExternalForces(fq);
@@ -613,8 +616,24 @@ bool FEASolve::calculateDisplacements(ImplicitNewmarkDense *implicitNewmarkDense
   	if (u == NULL)
   		u = (double *) malloc(sizeof(double) * nRendering * 3);
   	deformableObjectRenderingMeshReduced->Getu(u);
-	
+
 	free(q);
 
 	return true;
+}
+
+bool FEASolve::saveDeformationsPerVertex(std::string const &path) const
+{
+	int n = getNumVertices();
+
+	ofstream out(path.c_str());
+	for (int i = 0; i < 3 * n; i+=3)
+	{
+		out << u[i] << " " << u[i+1] << " " << u[i+2] << endl;
+	}
+}
+
+void FEASolve::setMass(double const &mass_)
+{
+	mass = mass_;
 }

@@ -23,7 +23,15 @@ int main(int argc, char * argv[])
 	else if (opts_.in_fast)
 	{
 		FEASolve solv(&sim);
+		solv.setMass(80.0);
 		solv.initImplicitNewmarkDense();
+		solv.runImplicitNewmarkDense();
+
+		string o_mesh_file_path = "mesh.deform.obj";
+		solv.applyDeformationAndSaveSurfaceMesh(o_mesh_file_path);
+
+		string o_deformations_file_path = "deformations.out";
+		solv.saveDeformationsPerVertex(o_deformations_file_path);
 	}
 	
 	return 0;

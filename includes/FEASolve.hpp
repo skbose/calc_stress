@@ -150,6 +150,7 @@ class FEASolve
 		// returns the original mass (in case of volumetric mesh)
 		// returns the mass estimate (in case of surface mesh)
 		double getMass() const;
+		void setMass(double const &mass_);
 
 		// calculate the per vertex energy for implicit backward euler solver
 		bool calculatePerVertexEnergy();
