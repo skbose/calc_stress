@@ -200,7 +200,7 @@ bool FEASolve::readFixedVertices(int oneIndexed)
 		return false;
 	}
 
-	LoadList::load((appPtr->opts).in_fixed_vertices_file_path.c_str(), &numFixedVertices, &constrainedVertexList);
+	ListIO::load((appPtr->opts).in_fixed_vertices_file_path.c_str(), &numFixedVertices, &constrainedVertexList);
 	std::cout << "Number of constrained vertices read: " << numFixedVertices << std::endl;
 
 	return true;
