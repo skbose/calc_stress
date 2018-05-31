@@ -23,7 +23,8 @@ int main(int argc, char * argv[])
 	else if (opts_.in_fast)
 	{
 		FEASolve solv(&sim);
-		solv.setMass(80.0);
+		// mass copied from the experimental version for comparison.
+		solv.setMass(87.5668);
 		solv.initImplicitNewmarkDense();
 		solv.runImplicitNewmarkDense();
 

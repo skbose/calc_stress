@@ -436,9 +436,9 @@ bool FEASolve::initImplicitNewmarkDense()
 		fq[i] = 0;
 	
 	// TODO: SDF based gravity force.
-	double const gp_per_vertex = -(mass * 9.81 * 10) / (double)nRendering;
+	double const gp_per_vertex = -(mass * 9.81 * 5) / (double)nRendering;
 	for (int i = 0; i < 3 * nRendering; i += 3)
-		f[i + 1] = -gp_per_vertex;
+		f[i + 1] = gp_per_vertex;
 
 	renderingModalMatrix->ProjectSingleVertex(0, f[0], f[1], f[2], fq);
 	
@@ -530,10 +530,9 @@ bool FEASolve::runImplicitNewmarkDense()
   	
   	ImplicitNewmarkDense *implicitNewmarkDense = new ImplicitNewmarkDense(r, timestep, massMatrix, reducedForceModel);
 
-  	implicitNewmarkDense->SetExternalForcesToZero();
-
   	double * u_prev = (double *) malloc(sizeof(double) * 3 * nRendering);
 
+  	implicitNewmarkDense->SetExternalForcesToZero();
 	implicitNewmarkDense->SetTimestep(timestep);
 	implicitNewmarkDense->SetNewmarkBeta(newmarkBeta);
 	implicitNewmarkDense->SetNewmarkGamma(newmarkGamma);
@@ -553,49 +552,49 @@ bool FEASolve::runImplicitNewmarkDense()
 		
 		implicitNewmarkDense->DoTimestep();
 
-		// flush existing forces to zero
-		for (int k = 0; k < r; k++)
-			fq[k] = 0;
+		// // flush existing forces to zero
+		// for (int k = 0; k < r; k++)
+		// 	fq[k] = 0;
 
-		// // flush spring forces
-		for (int vertex_i = 0; vertex_i < nRendering; vertex_i++)
-		{
-			springForce[3*vertex_i + 0] = 0;
-			springForce[3*vertex_i + 1] = 0;
-			springForce[3*vertex_i + 2] = 0;
-		}
+		// // // flush spring forces
+		// for (int vertex_i = 0; vertex_i < nRendering; vertex_i++)
+		// {
+		// 	springForce[3*vertex_i + 0] = 0;
+		// 	springForce[3*vertex_i + 1] = 0;
+		// 	springForce[3*vertex_i + 2] = 0;
+		// }
 
-		// update the forces acting on the fixed vertices everytime.
-		calculateDisplacements(implicitNewmarkDense);
+		// // update the forces acting on the fixed vertices everytime.
+		// calculateDisplacements(implicitNewmarkDense);
 
-		for (int vertex_i = 0; vertex_i < numFixedVertices; vertex_i++)
-		{
-			int v = constrainedVertexList[vertex_i];
-			springForce[3*v + 0] = -springconst * u[3*v + 0] - velocitydampingconst * (u[3*v + 0] - u_prev[3*v + 0]) / timestep;
-			springForce[3*v + 1] = -springconst * u[3*v + 1] - velocitydampingconst * (u[3*v + 1] - u_prev[3*v + 1]) / timestep;
-			springForce[3*v + 2] = -springconst * u[3*v + 2] - velocitydampingconst * (u[3*v + 2] - u_prev[3*v + 2]) / timestep;
+		// for (int vertex_i = 0; vertex_i < numSupportVertices; vertex_i++)
+		// {
+		// 	int v = supportVerticesList[vertex_i];
+		// 	springForce[3*v + 0] = -springconst * u[3*v + 0] - velocitydampingconst * (u[3*v + 0] - u_prev[3*v + 0]) / timestep;
+		// 	springForce[3*v + 1] = -springconst * u[3*v + 1] - velocitydampingconst * (u[3*v + 1] - u_prev[3*v + 1]) / timestep;
+		// 	springForce[3*v + 2] = -springconst * u[3*v + 2] - velocitydampingconst * (u[3*v + 2] - u_prev[3*v + 2]) / timestep;
 
-			u_prev[3*v + 0] = u[3*v + 0];
-			u_prev[3*v + 1] = u[3*v + 1];
-			u_prev[3*v + 2] = u[3*v + 2];
- 	 	}
+		// 	u_prev[3*v + 0] = u[3*v + 0];
+		// 	u_prev[3*v + 1] = u[3*v + 1];
+		// 	u_prev[3*v + 2] = u[3*v + 2];
+ 	//  	}
 
- 	 	// Adding up spring force and gravity force
- 	 	for (int vertex_i = 0; vertex_i < 3 * nRendering; vertex_i += 3)
- 	 	{	
- 	 		springForce[vertex_i + 0] += f[vertex_i + 0];
- 	 		springForce[vertex_i + 1] += f[vertex_i + 1];
- 	 		springForce[vertex_i + 2] += f[vertex_i + 2];
- 	 	}
+ 	//  	// Adding up spring force and gravity force
+ 	//  	for (int vertex_i = 0; vertex_i < 3 * nRendering; vertex_i += 3)
+ 	//  	{	
+ 	//  		springForce[vertex_i + 0] += f[vertex_i + 0];
+ 	//  		springForce[vertex_i + 1] += f[vertex_i + 1];
+ 	//  		springForce[vertex_i + 2] += f[vertex_i + 2];
+ 	//  	}
 
- 	 	renderingModalMatrix->ProjectSingleVertex(0, springForce[0], springForce[1], springForce[2], fq);
+ 	//  	renderingModalMatrix->ProjectSingleVertex(0, springForce[0], springForce[1], springForce[2], fq);
 	
-		for (int pulledVertex = 3; pulledVertex < 3 * nRendering; pulledVertex += 3)
-			renderingModalMatrix->AddProjectSingleVertex(pulledVertex/3,
-           		springForce[pulledVertex], springForce[pulledVertex + 1], springForce[pulledVertex + 2], fq);
+		// for (int pulledVertex = 3; pulledVertex < 3 * nRendering; pulledVertex += 3)
+		// 	renderingModalMatrix->AddProjectSingleVertex(pulledVertex/3,
+  //          		springForce[pulledVertex], springForce[pulledVertex + 1], springForce[pulledVertex + 2], fq);
 
- 	 	implicitNewmarkDense->SetExternalForcesToZero();
- 	 	implicitNewmarkDense->SetExternalForces(fq);
+ 	//  	implicitNewmarkDense->SetExternalForcesToZero();
+ 	//  	implicitNewmarkDense->SetExternalForces(fq);
 	}
 
 	double t = tmr.elapsed();
