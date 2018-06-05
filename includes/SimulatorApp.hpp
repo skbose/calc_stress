@@ -19,6 +19,9 @@ class SimulatorApp
 
 			std::string in_veg_file_path;
 			std::string in_fixed_vertices_file_path;
+			std::string in_support_vertices_directory;
+
+			std::vector<std::string> support_vertices_files;
 
 			// file paths for fast deformations
 			std::string in_cubic_polynomial_file_path;
@@ -47,6 +50,10 @@ class SimulatorApp
 			bool in_slow;
 			bool in_fast;
 			bool in_preprocess;
+
+			// misc
+			int num_support_regions;
+			bool oneIndexed;
 		};
 
 		/** Get the set of program options. */

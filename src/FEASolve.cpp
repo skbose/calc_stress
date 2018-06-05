@@ -11,7 +11,6 @@ FEASolve::FEASolve(SimulatorApp * ptr)
 	massMatrix = NULL;
 	tetMesh = NULL;
 	constrainedVertexList = NULL;
-	supportVerticesList = NULL;
 	deformableModel = NULL;
 
 	// linear modes
@@ -41,11 +40,14 @@ FEASolve::FEASolve(SimulatorApp * ptr)
 
 	// other misc variables
 	mass = 0.0;
-	numFixedVertices = numSupportVertices = -1;
+	numFixedVertices = -1;
 	totalStrainEnergy = maxStrainEnergy = -1;
 	visualMesh = NULL;
 	f = NULL;		// needs a "free" call.
 	fq = springForce = NULL;	// needs a "free" call
+
+	loaded_s_verts = false;
+	oneIndexed = appPtr->opts.oneIndexed ? 1 : 0;
 
 	nRendering = -1;
 	URenderingFloat = NULL;
@@ -85,7 +87,7 @@ bool FEASolve::initImplicitBackwardEulerSparse()
 
 	deformableModel = new CorotationalLinearFEM(tetMesh);
 	// read fixed vertices "0" indexed.
-	bool success = readFixedVertices(0);
+	bool success = readFixedVertices();
 	
 	if (!success)
 	{
@@ -157,7 +159,7 @@ bool FEASolve::runImplicitBackwardEulerSparse()
 	int numConstrainedDOFs = numFixedVertices * 3;
 	int *constrainedDOFs = (int *)malloc(sizeof(int) * numConstrainedDOFs);
 
-	int oneIndexed = 0;
+	// int oneIndexed = 0;
 	for (int i = 0, pos = 0; i < numFixedVertices; i++, pos++)
 	{
 		constrainedDOFs[pos*3 + 0] = (constrainedVertexList[i] - 1 + oneIndexed) * 3 + oneIndexed;
@@ -192,7 +194,7 @@ bool FEASolve::runImplicitBackwardEulerSparse()
 	// free(forceModel);
 }
 
-bool FEASolve::readFixedVertices(int oneIndexed)
+bool FEASolve::readFixedVertices()
 {
 	if (constrainedVertexList)
 	{
@@ -404,7 +406,9 @@ bool FEASolve::initImplicitNewmarkDense()
 	// use the fixed vertices reading module to read the support vertices
 	// remember to set them to NULL after copying data.
 	// vertices "0" indexed.
-	bool success = readFixedVertices(0);
+	bool success;
+	if (appPtr->opts.num_support_regions > 0)
+		success = readSupportVertices();
 	
 	if (!success)
 	{
@@ -413,12 +417,6 @@ bool FEASolve::initImplicitNewmarkDense()
 		destroyImplicitNewmarkDense();
 		return false;
 	}
-
-	numSupportVertices = numFixedVertices;
-	numFixedVertices = -1;
-
-	supportVerticesList = constrainedVertexList; 
-	constrainedVertexList = NULL;
 
 	f = (double*) malloc (sizeof(double) * 3 * nRendering);
 	fq = (double *) malloc (sizeof(double) * r);
@@ -466,38 +464,20 @@ bool FEASolve::destroyImplicitNewmarkDense()
 		free(springForce); springForce = NULL;
 	}
 
-	if (supportVerticesList)
+	if (loaded_s_verts)
 	{
-		free(supportVerticesList);
-		supportVerticesList = NULL;
+		int n = appPtr->opts.num_support_regions;
+		for (int i = 0; i < n; i++)
+		{
+			free(supportVertices[i]);
+			supportVertices[i] = NULL;
+		}
+
+		free(w);
+		w = NULL;
 	}
 
-	// if (renderingModalMatrix)
-	// {
-	// 	free(renderingModalMatrix);
-	// 	renderingModalMatrix = NULL;
-	// }
-
-	// if (deformableObjectRenderingMeshCPU)
-	// {
-	// 	free(deformableObjectRenderingMeshCPU);
-	// 	deformableObjectRenderingMeshCPU = NULL;
-	// }
-
-	// if (deformableObjectRenderingMeshReduced)
-	// {
-	// 	free(deformableObjectRenderingMeshReduced);
-	// 	deformableObjectRenderingMeshReduced = NULL;
-	// }
-
-	// if (visualMesh)
-	// {
-	// 	free(visualMesh);
-	// 	visualMesh = NULL;
-	// }
-
 	isInitImplicitNewmarkDense = false;
-
 }
 
 bool FEASolve::runImplicitNewmarkDense()
@@ -544,7 +524,7 @@ bool FEASolve::runImplicitNewmarkDense()
 
 	for (int i = 0; i < (appPtr->opts).in_steps; i++)
 	{
-		cout << "Simulating step " << i << endl;
+		// cout << "Simulating step " << i << endl;
 		if (i == 0) // set some force at the first timestep
 		{
 			implicitNewmarkDense->SetExternalForces(fq);
@@ -552,49 +532,59 @@ bool FEASolve::runImplicitNewmarkDense()
 		
 		implicitNewmarkDense->DoTimestep();
 
-		// // flush existing forces to zero
-		// for (int k = 0; k < r; k++)
-		// 	fq[k] = 0;
+		if (appPtr->opts.num_support_regions > 0)
+		{	// flush existing forces to zero
+			for (int k = 0; k < r; k++)
+				fq[k] = 0;
 
-		// // // flush spring forces
-		// for (int vertex_i = 0; vertex_i < nRendering; vertex_i++)
-		// {
-		// 	springForce[3*vertex_i + 0] = 0;
-		// 	springForce[3*vertex_i + 1] = 0;
-		// 	springForce[3*vertex_i + 2] = 0;
-		// }
+			// // flush spring forces
+			for (int vertex_i = 0; vertex_i < nRendering; vertex_i++)
+			{
+				springForce[3*vertex_i + 0] = 0;
+				springForce[3*vertex_i + 1] = 0;
+				springForce[3*vertex_i + 2] = 0;
+			}
 
-		// // update the forces acting on the fixed vertices everytime.
-		// calculateDisplacements(implicitNewmarkDense);
+			// update the forces acting on the fixed vertices everytime.
+			calculateDisplacements(implicitNewmarkDense);
 
-		// for (int vertex_i = 0; vertex_i < numSupportVertices; vertex_i++)
-		// {
-		// 	int v = supportVerticesList[vertex_i];
-		// 	springForce[3*v + 0] = -springconst * u[3*v + 0] - velocitydampingconst * (u[3*v + 0] - u_prev[3*v + 0]) / timestep;
-		// 	springForce[3*v + 1] = -springconst * u[3*v + 1] - velocitydampingconst * (u[3*v + 1] - u_prev[3*v + 1]) / timestep;
-		// 	springForce[3*v + 2] = -springconst * u[3*v + 2] - velocitydampingconst * (u[3*v + 2] - u_prev[3*v + 2]) / timestep;
+			int num_regions = appPtr->opts.num_support_regions;
 
-		// 	u_prev[3*v + 0] = u[3*v + 0];
-		// 	u_prev[3*v + 1] = u[3*v + 1];
-		// 	u_prev[3*v + 2] = u[3*v + 2];
- 	//  	}
+			for (int iter_n = 0; iter_n < num_regions; iter_n++)
+			{
+				int * supportVerticesList = supportVertices[iter_n];
+				int numSupportVertices = num_s_verts[iter_n];
 
- 	//  	// Adding up spring force and gravity force
- 	//  	for (int vertex_i = 0; vertex_i < 3 * nRendering; vertex_i += 3)
- 	//  	{	
- 	//  		springForce[vertex_i + 0] += f[vertex_i + 0];
- 	//  		springForce[vertex_i + 1] += f[vertex_i + 1];
- 	//  		springForce[vertex_i + 2] += f[vertex_i + 2];
- 	//  	}
+				for (int vertex_i = 0; vertex_i < numSupportVertices; vertex_i++)
+				{
+					int v = supportVerticesList[vertex_i] - 1;
+					springForce[3*v + 0] = -springconst * u[3*v + 0] - velocitydampingconst * (u[3*v + 0] - u_prev[3*v + 0]) / timestep;
+					springForce[3*v + 1] = -springconst * u[3*v + 1] - velocitydampingconst * (u[3*v + 1] - u_prev[3*v + 1]) / timestep;
+					springForce[3*v + 2] = -springconst * u[3*v + 2] - velocitydampingconst * (u[3*v + 2] - u_prev[3*v + 2]) / timestep;
 
- 	//  	renderingModalMatrix->ProjectSingleVertex(0, springForce[0], springForce[1], springForce[2], fq);
-	
-		// for (int pulledVertex = 3; pulledVertex < 3 * nRendering; pulledVertex += 3)
-		// 	renderingModalMatrix->AddProjectSingleVertex(pulledVertex/3,
-  //          		springForce[pulledVertex], springForce[pulledVertex + 1], springForce[pulledVertex + 2], fq);
+					u_prev[3*v + 0] = u[3*v + 0];
+					u_prev[3*v + 1] = u[3*v + 1];
+					u_prev[3*v + 2] = u[3*v + 2];
+		 	 	}
+		 	}
 
- 	//  	implicitNewmarkDense->SetExternalForcesToZero();
- 	//  	implicitNewmarkDense->SetExternalForces(fq);
+	 	 	// Adding up spring force and gravity force
+	 	 	for (int vertex_i = 0; vertex_i < 3 * nRendering; vertex_i += 3)
+	 	 	{	
+	 	 		springForce[vertex_i + 0] += f[vertex_i + 0];
+	 	 		springForce[vertex_i + 1] += f[vertex_i + 1];
+	 	 		springForce[vertex_i + 2] += f[vertex_i + 2];
+	 	 	}
+
+	 	 	renderingModalMatrix->ProjectSingleVertex(0, springForce[0], springForce[1], springForce[2], fq);
+		
+			for (int pulledVertex = 3; pulledVertex < 3 * nRendering; pulledVertex += 3)
+				renderingModalMatrix->AddProjectSingleVertex(pulledVertex/3,
+	           		springForce[pulledVertex], springForce[pulledVertex + 1], springForce[pulledVertex + 2], fq);
+
+	 	 	implicitNewmarkDense->SetExternalForcesToZero();
+	 	 	implicitNewmarkDense->SetExternalForces(fq);
+	 	}
 	}
 
 	double t = tmr.elapsed();
@@ -635,4 +625,53 @@ bool FEASolve::saveDeformationsPerVertex(std::string const &path) const
 void FEASolve::setMass(double const &mass_)
 {
 	mass = mass_;
+}
+
+bool FEASolve::readSupportVertices()
+{
+	if (loaded_s_verts)
+	{
+		std::cout << "Support vertices have already been loaded or not been freed. Please check.\n";
+		return false;
+	}
+
+	int n = appPtr->opts.num_support_regions;
+	
+	// weight vector - importance score for the regions
+	w = (double *)malloc(sizeof(double) * n);
+
+	for (int i = 0; i < n; i++)
+	{
+		num_s_verts.push_back(0);
+		supportVertices.push_back(NULL);
+
+		w[i] = 0.0;	// initially none are important
+		LoadList::load((appPtr->opts).support_vertices_files[i].c_str(), &num_s_verts[i], &supportVertices[i]);
+	}
+
+	return true;
+}
+
+double * FEASolve::getWeightVector(int & n_) const
+{
+	n_ = appPtr->opts.num_support_regions;
+	return w;
+}
+
+void FEASolve::setWeightVector(double * w_)
+{
+	int n = appPtr->opts.num_support_regions;
+	for (int i = 0; i < n; i++)
+	{
+		w[i] = w_[i];
+	}
+}
+
+void FEASolve::updateWeightVector(double * dw)
+{
+	int n = appPtr->opts.num_support_regions;
+	for (int i = 0; i < n; i++)
+	{
+		w[i] = dw[i];
+	}
 }

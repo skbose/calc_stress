@@ -21,6 +21,8 @@ SimulatorApp::optsToString() const
 		<< "\n  render-mesh-file = " << opts.in_rendering_mesh_file_path
 		<< "\n  modal-matrix-file = " << opts.in_modal_matrix_file_path
 		<< "\n  output-dir = " << opts.output_dir
+		<< "\n  support vertices directory = " << opts.in_support_vertices_directory
+		<< "\n  one-indexed = " << opts.oneIndexed
 		<< "\n";
 
 		return oss.str();
@@ -59,6 +61,8 @@ SimulatorApp::parseOptions(std::vector<std::string> const & args)
 		("render_mesh", po::value<std::string>(&opts.in_rendering_mesh_file_path), "Rendering mesh file path (.obj)")
 		("modal_matrix", po::value<std::string>(&opts.in_modal_matrix_file_path), "Modal Matrix file path (.URendering.float)")
 		("output_dir", po::value<std::string>(&opts.output_dir)->default_value("./new_output_dir"), "Output directory path to write the output files.")
+		("s_verts", po::value<std::string>(&opts.in_support_vertices_directory),"path to the directory containing support vertices (turn on the spring penalty based support)")
+		("one_indexed, oi", "The vertices are one indexed (default is 0 indexed).")
 	;
 
 	po::options_description desc;
@@ -125,8 +129,18 @@ SimulatorApp::parseOptions(std::vector<std::string> const & args)
 	opts.in_fast = (vm.count("fast") > 0);
 	opts.in_preprocess = (vm.count("preprocess") > 0);
 
+	bool s_verts = (vm.count("s_verts") > 0);
+	opts.oneIndexed = (vm.count("one_indexed") > 0);
+
 	if (opts.in_slow)
 	{
+		if (s_verts)
+		{
+			std::cout << "Use support vertices only with fast solver.\n";
+			std::cout << usage << std::endl;
+			std::cout << visible << std::endl;
+		}
+
 		bool is_veg_present = (vm.count("veg") > 0);
 		bool is_fixed_vertices_file_present = (vm.count("fixed") > 0);
 
@@ -167,6 +181,17 @@ SimulatorApp::parseOptions(std::vector<std::string> const & args)
 			opts.in_simulation_mesh_file_path = Thea::FileSystem::resolve(opts.in_simulation_mesh_file_path);
 			opts.in_rendering_mesh_file_path = opts.in_simulation_mesh_file_path;
 			opts.in_modal_matrix_file_path = Thea::FileSystem::resolve(opts.in_modal_matrix_file_path);
+		}
+
+		if (s_verts)
+		{
+			opts.in_support_vertices_directory = Thea::FileSystem::resolve(opts.in_support_vertices_directory);
+			int ret = Thea::FileSystem::getDirectoryContents(opts.in_support_vertices_directory, opts.support_vertices_files, -1, "*.bou");
+			opts.num_support_regions = ret;
+		}
+		else
+		{
+			opts.num_support_regions = 0;
 		}
 	}
 	else

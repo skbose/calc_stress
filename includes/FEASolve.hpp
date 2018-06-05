@@ -32,12 +32,15 @@ class FEASolve
 		/* solver parameters: */
 		int numFixedVertices;
 		int *constrainedVertexList;		// list of constrained vertex IDs
-		int numSupportVertices;
-		int *supportVerticesList;
 		double totalStrainEnergy, maxStrainEnergy;
 		double *u;						// list of deformation values. u_x, u_y, u_z for each v_i.
 		double *pvEnergy;				// per vertex energy calculated from the deformation values (u).
 
+		// support vertices management
+		bool loaded_s_verts;
+		vector<int> num_s_verts;
+		vector<int *> supportVertices;
+		double * w;
 		
 		/* volumetric solver (slow) */
 		CorotationalLinearFEM *deformableModel;
@@ -81,6 +84,7 @@ class FEASolve
 		// misc items required for the solver.
 		int computationRunning;			// parallelize the pre-computation. (not sure why required - ref Vega)
 		ObjMesh *visualMesh;			// original surface mesh. The deformation is later applied on this to visualize the output.
+		int oneIndexed;					// veg file is 0 indexed or 1 indexed.
 		
 		// stores the proportion of mass that should be used for a particular vertex
 		// in order to calculate the gravitational force on it.
@@ -104,7 +108,7 @@ class FEASolve
 
 		// used to init common data - not required as of now.
 		// void initCommon();
-		bool readFixedVertices(int oneIndexed);
+		bool readFixedVertices();
 		bool calculateMass();
 		// calculate the displacements for the implicit backward euler solver.
 		bool calculateDisplacements(ImplicitBackwardEulerSparse *implicitBackwardEulerSparse);
@@ -150,10 +154,16 @@ class FEASolve
 		// returns the original mass (in case of volumetric mesh)
 		// returns the mass estimate (in case of surface mesh)
 		double getMass() const;
+		// returns the importance scores of the regions
+		double * getWeightVector(int &n_) const;
+
+		void updateWeightVector(double * dw);
+		void setWeightVector(double * w_);
 		void setMass(double const &mass_);
 
 		// calculate the per vertex energy for implicit backward euler solver
 		bool calculatePerVertexEnergy();
+		bool readSupportVertices();
 
 		// save methods
 		// provide filename as "<filename>.pts"
