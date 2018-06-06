@@ -151,7 +151,6 @@ SimulatorApp::parseOptions(std::vector<std::string> const & args)
 			std::cout << "Please provide the veg file and fixed vertices file for the volumetric solver.\n";
 			std::cout << usage << std::endl;
 			std::cout << visible << std::endl;
-			// std::cout << visible;
 			return false;
 		}
 		else
@@ -173,7 +172,6 @@ SimulatorApp::parseOptions(std::vector<std::string> const & args)
 				std::cout << "Please provide the cub file, modal matrix and simulation mesh for the reduced system (or turn ON the preprocess flag).\n";
 				std::cout << usage << std::endl;
 				std::cout << visible << std::endl;
-				// std::cout << visible;
 				return false;		
 			}
 		}

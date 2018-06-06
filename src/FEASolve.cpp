@@ -501,8 +501,11 @@ bool FEASolve::destroyImplicitNewmarkDense()
 			supportVertices[i] = NULL;
 		}
 
-		free(w);
-		w = NULL;
+		if (w)
+		{
+			free(w);
+			w = NULL;
+		}
 	}
 
 	if (u_prev)
@@ -511,11 +514,64 @@ bool FEASolve::destroyImplicitNewmarkDense()
 		u_prev = NULL;
 	}
 
-	if (massMatrix)
+	if (massMatrix_f)
 	{
 		free(massMatrix_f);
 		massMatrix_f = NULL;
 	}
+
+	// if (visualMesh)
+	// {
+	// 	delete visualMesh;
+	// 	visualMesh = NULL;
+	// }
+
+	// if (stVKReducedInternalForces)
+	// {
+	// 	delete stVKReducedInternalForces;
+	// 	stVKReducedInternalForces = NULL;
+	// }
+
+	// if (stVKReducedStiffnessMatrix)
+	// {
+	// 	delete stVKReducedStiffnessMatrix;
+	// 	stVKReducedStiffnessMatrix = NULL;
+	// }
+
+	// if (reducedStVKForceModel)
+	// {
+	// 	delete reducedStVKForceModel;
+	// 	reducedStVKForceModel = NULL;
+	// }
+	
+	// if (reducedLinearStVKForceModel)
+	// {
+	// 	delete reducedLinearStVKForceModel;
+	// 	reducedLinearStVKForceModel = NULL;
+	// }
+
+	// if (reducedForceModel)
+	// {
+	// 	delete reducedForceModel;
+	// 	reducedForceModel = NULL;
+	// }
+
+	// if (renderingModalMatrix)
+	// {
+	// 	delete renderingModalMatrix;
+	// 	renderingModalMatrix = NULL;
+	// }
+	// if (deformableObjectRenderingMeshCPU)
+	// {
+	// 	delete deformableObjectRenderingMeshCPU;
+	// 	deformableObjectRenderingMeshCPU = NULL;
+	// }
+	
+	// if (deformableObjectRenderingMeshReduced)
+	// {
+	// 	delete deformableObjectRenderingMeshCPU;
+	// 	deformableObjectRenderingMeshCPU = NULL;
+	// }
 
 	isInitImplicitNewmarkDense = false;
 }
@@ -525,8 +581,11 @@ void FEASolve::flushImplicitNewmarkDenseData()
 	for (int i = 0; i < r; i++)
 		fq[i] = 0;
 
-	for (int i = 0; i < 3 * getNumVertices(); i++)
+	for (int i = 0; i < 3 * nRendering; i++)
+	{
 		u_prev[i] = u[i] = 0.0;
+		springForce[i] = 0.0;
+	}
 
 	implicitNewmarkDense->SetExternalForcesToZero();
 }
@@ -562,7 +621,7 @@ bool FEASolve::runImplicitNewmarkDense()
 			for (int k = 0; k < r; k++)
 				fq[k] = 0;
 
-			// // flush spring forces
+			// flush spring forces
 			for (int vertex_i = 0; vertex_i < nRendering; vertex_i++)
 			{
 				springForce[3*vertex_i + 0] = 0;

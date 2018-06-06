@@ -83,7 +83,7 @@ class FEASolve
 	   	
 	   	ReducedStVKForceModel *reducedStVKForceModel;
 	  	ReducedLinearStVKForceModel *reducedLinearStVKForceModel;
-	  	ReducedForceModel *reducedForceModel = reducedStVKForceModel;
+	  	ReducedForceModel *reducedForceModel;
 	  	
 	  	double * massMatrix_f, *u_prev;
 	  	ImplicitNewmarkDense *implicitNewmarkDense;

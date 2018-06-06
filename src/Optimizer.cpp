@@ -17,6 +17,11 @@ bool Optimizer::searchOptimum()
 	std::cout << std::endl;
 	for (int sample = 0; sample < num_samples; sample++)
 	{
+		solv->setWeightVector(w);
+		solv->runImplicitNewmarkDense();
+		
+		showWeightVector();
+
 		for (int i = 0; i < dim; i ++)
 		{
 
@@ -26,11 +31,6 @@ bool Optimizer::searchOptimum()
 			w[i] = min(1.0, w[i]);
 			w[i] = max(0.0, w[i]);
 		}
-
-		solv->setWeightVector(w);
-		solv->runImplicitNewmarkDense();
-		solv->flushImplicitNewmarkDenseData();
-		showWeightVector();
 	}
 }
 
