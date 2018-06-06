@@ -21,9 +21,9 @@ class Optimizer
 		
 		bool searchOptimum();
 
-		// generate a random vector by sampling a multivariate gaussian
-		void generateRandomVector(Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> & weights, int num_samples);
-
+		// generate a random vector by sampling a multivariate gaussian, mean gets updated
+		void generateRandomVector(Eigen::Matrix<double, Eigen::Dynamic, 1> & mean);
+		
 		// update the weight vector
 		bool updateWeightVector();
 
