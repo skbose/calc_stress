@@ -466,6 +466,7 @@ bool FEASolve::initImplicitNewmarkDense()
   	implicitNewmarkDense = new ImplicitNewmarkDense(r, timestep, massMatrix_f, reducedForceModel);
 
   	u_prev = (double *) malloc(sizeof(double) * 3 * nRendering);
+  	u = (double *) malloc(sizeof(double) * nRendering * 3);
 
   	implicitNewmarkDense->SetExternalForcesToZero();
 	implicitNewmarkDense->SetTimestep(timestep);
@@ -588,6 +589,25 @@ void FEASolve::flushImplicitNewmarkDenseData()
 	}
 
 	implicitNewmarkDense->SetExternalForcesToZero();
+
+	renderingModalMatrix->ProjectSingleVertex(0, f[0], f[1], f[2], fq);
+	
+	for (int pulledVertex = 3; pulledVertex < 3 * nRendering; pulledVertex += 3)
+		renderingModalMatrix->AddProjectSingleVertex(pulledVertex/3,
+           	f[pulledVertex], f[pulledVertex + 1], f[pulledVertex + 2], fq);
+
+	delete implicitNewmarkDense;
+	
+	float const newmarkBeta = 0.25;
+	float const newmarkGamma = 0.5;
+	float const timestep = appPtr->opts.in_timestep;
+  	
+  	implicitNewmarkDense = new ImplicitNewmarkDense(r, timestep, massMatrix_f, reducedForceModel);
+
+  	implicitNewmarkDense->SetExternalForcesToZero();
+	implicitNewmarkDense->SetTimestep(timestep);
+	implicitNewmarkDense->SetNewmarkBeta(newmarkBeta);
+	implicitNewmarkDense->SetNewmarkGamma(newmarkGamma);
 }
 
 bool FEASolve::runImplicitNewmarkDense()
@@ -617,7 +637,8 @@ bool FEASolve::runImplicitNewmarkDense()
 		implicitNewmarkDense->DoTimestep();
 
 		if (appPtr->opts.num_support_regions > 0)
-		{	// flush existing forces to zero
+		{	
+			// flush existing forces to zero
 			for (int k = 0; k < r; k++)
 				fq[k] = 0;
 
@@ -672,7 +693,7 @@ bool FEASolve::runImplicitNewmarkDense()
 	}
 
 	double t = tmr.elapsed();
-	cout << "Time to run the solver: " << t << endl;
+	// cout << "Time to run the solver: " << t << endl;
 
 	calculateDisplacements(implicitNewmarkDense);
 	// flushImplicitNewmarkDenseData();
@@ -757,11 +778,37 @@ void FEASolve::updateWeightVector(double * dw)
 	int n = appPtr->opts.num_support_regions;
 	for (int i = 0; i < n; i++)
 	{
-		w[i] = dw[i];
+		w[i] += dw[i];
 	}
 }
 
 int FEASolve::getNumSamplesForOptimizer() const
 {
 	return appPtr->opts.num_samples_for_optimizer;
+}
+
+double FEASolve::getStress() const
+{
+	double stress = 0.0;
+
+	for (int i = 0; i < getNumVertices(); i++)
+	{
+		Eigen::Vector3d d_vec(u[3*i+0], u[3*i+1], u[3*i+2]);
+		// stress += d_vec.norm();
+		stress += (-d_vec(1));
+	}
+
+	return stress;
+}
+
+double FEASolve::getNormOfWeightVector() const
+{
+	double norm = 0.0;
+
+	for (int i = 0; i < appPtr->opts.num_support_regions; i++)
+	{
+		norm += (w[i] * w[i]);
+	}
+
+	return norm;
 }

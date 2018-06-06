@@ -13,6 +13,7 @@
 #include <sstream>
 #include <assert.h>
 #include <ctime>
+#include <Eigen/Dense>
 
 #include "SimulatorApp.hpp"
 
@@ -166,8 +167,13 @@ class FEASolve
 		// returns the original mass (in case of volumetric mesh)
 		// returns the mass estimate (in case of surface mesh)
 		double getMass() const;
+
+		double getStress() const;
 		// returns the importance scores of the regions
 		double * getWeightVector(int &n_) const;
+
+		double getNormOfWeightVector() const;
+		
 		int getNumSamplesForOptimizer() const;
 
 		void updateWeightVector(double * dw);

@@ -35,7 +35,10 @@ int main(int argc, char * argv[])
 			opt.searchOptimum();
 		}
 		else
+		{
 			solv.runImplicitNewmarkDense();
+			cout << "Stress: " << solv.getStress() << endl;
+		}
 
 		// string o_mesh_file_path = "mesh.deform.obj";
 		// solv.applyDeformationAndSaveSurfaceMesh(o_mesh_file_path);
