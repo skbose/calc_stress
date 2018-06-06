@@ -30,7 +30,7 @@ include $(DISPLAYOBJ_LIB_MAKEFILES)
 
 all: $(R)/utilities/computeDeformationStress/solve #$(R)/utilities/3dfea/objMergeFiles
 
-$(R)/utilities/computeDeformationStress/solve: $(R)/utilities/computeDeformationStress/main.cpp  /home/sourav/Experimentation/VegaFEM-v3.1/utilities/largeModalDeformationFactory/StVKReducedInternalForcesWX.cpp ./src/SimulatorApp.cpp ./src/FEASolve.cpp $(DISPLAYOBJ_LIB_FILENAMES) $(DISPLAYOBJ_HEADER_FILENAMES)
+$(R)/utilities/computeDeformationStress/solve: $(R)/utilities/computeDeformationStress/main.cpp  /home/sourav/Experimentation/VegaFEM-v3.1/utilities/largeModalDeformationFactory/StVKReducedInternalForcesWX.cpp ./src/SimulatorApp.cpp ./src/FEASolve.cpp ./src/Optimizer.cpp $(DISPLAYOBJ_LIB_FILENAMES) $(DISPLAYOBJ_HEADER_FILENAMES)
 	$(CXXLD) $(LDFLAGS) $(INCLUDE) $(GLUI_INCLUDE) $(BLASLAPACK_INCLUDE) $(DISPLAYOBJ_OBJECTS) $^ $(DISPLAYOBJ_LINK) -lThea -lboost_system -lboost_thread -lboost_filesystem -lboost_program_options -lm -Wl,-rpath,$(GLUI_DIR)/lib $(IMAGE_LIBS) `$(WX_CONFIG) --cxxflags --libs core,base,gl` -o $@; cp $@ $(R)/utilities/bin/
 
 # $(R)/utilities/3dfea/objMergeFiles: $(R)/utilities/3dfea/objMergeFiles.cpp $(DISPLAYOBJ_LIB_FILENAMES) $(DISPLAYOBJ_HEADER_FILENAMES)

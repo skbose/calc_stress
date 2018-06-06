@@ -558,9 +558,9 @@ bool FEASolve::runImplicitNewmarkDense()
 				for (int vertex_i = 0; vertex_i < numSupportVertices; vertex_i++)
 				{
 					int v = supportVerticesList[vertex_i] - 1;
-					springForce[3*v + 0] = -springconst * u[3*v + 0] - velocitydampingconst * (u[3*v + 0] - u_prev[3*v + 0]) / timestep;
-					springForce[3*v + 1] = -springconst * u[3*v + 1] - velocitydampingconst * (u[3*v + 1] - u_prev[3*v + 1]) / timestep;
-					springForce[3*v + 2] = -springconst * u[3*v + 2] - velocitydampingconst * (u[3*v + 2] - u_prev[3*v + 2]) / timestep;
+					springForce[3*v + 0] = w[iter_n] * (-springconst * u[3*v + 0] - velocitydampingconst * (u[3*v + 0] - u_prev[3*v + 0]) / timestep);
+					springForce[3*v + 1] = w[iter_n] * (-springconst * u[3*v + 1] - velocitydampingconst * (u[3*v + 1] - u_prev[3*v + 1]) / timestep);
+					springForce[3*v + 2] = w[iter_n] * (-springconst * u[3*v + 2] - velocitydampingconst * (u[3*v + 2] - u_prev[3*v + 2]) / timestep);
 
 					u_prev[3*v + 0] = u[3*v + 0];
 					u_prev[3*v + 1] = u[3*v + 1];

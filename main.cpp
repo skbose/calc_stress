@@ -1,4 +1,5 @@
 #include "includes/FEASolve.hpp"
+#include "includes/Optimizer.hpp"
 
 int main(int argc, char * argv[])
 {
@@ -33,6 +34,10 @@ int main(int argc, char * argv[])
 
 		string o_deformations_file_path = "deformations.out";
 		solv.saveDeformationsPerVertex(o_deformations_file_path);
+
+		// find the optimal solution
+		Optimizer opt(&solv);
+		opt.searchOptimum();
 	}
 	
 	return 0;
