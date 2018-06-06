@@ -54,6 +54,7 @@ class SimulatorApp
 			// misc
 			int num_support_regions;
 			bool oneIndexed;
+			int num_samples_for_optimizer;
 		};
 
 		/** Get the set of program options. */

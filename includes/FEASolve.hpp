@@ -76,7 +76,18 @@ class FEASolve
 		ModalMatrix * renderingModalMatrix;
 		SceneObjectReducedCPU * deformableObjectRenderingMeshCPU;
 		SceneObjectReduced * deformableObjectRenderingMeshReduced;
-		
+
+		// STVK variables required for the fast solver
+		StVKReducedInternalForces *stVKReducedInternalForces;
+	    StVKReducedStiffnessMatrix *stVKReducedStiffnessMatrix;
+	   	
+	   	ReducedStVKForceModel *reducedStVKForceModel;
+	  	ReducedLinearStVKForceModel *reducedLinearStVKForceModel;
+	  	ReducedForceModel *reducedForceModel = reducedStVKForceModel;
+	  	
+	  	double * massMatrix_f, *u_prev;
+	  	ImplicitNewmarkDense *implicitNewmarkDense;
+	
 		int nRendering;					// number of vertices in the rendering mesh.
 		int r;							// set to 20 by default. this stores the dimension of the reduced space.
 		float * URenderingFloat;		// rendering modal matrix. [currently obtained from largemodaldeformationfactory]
@@ -142,6 +153,7 @@ class FEASolve
 		bool initImplicitNewmarkDense();
 		bool destroyImplicitNewmarkDense();
 		bool runImplicitNewmarkDense();
+		void flushImplicitNewmarkDenseData();
 
 		// getters
 		int getNumVertices() const;
@@ -156,6 +168,7 @@ class FEASolve
 		double getMass() const;
 		// returns the importance scores of the regions
 		double * getWeightVector(int &n_) const;
+		int getNumSamplesForOptimizer() const;
 
 		void updateWeightVector(double * dw);
 		void setWeightVector(double * w_);

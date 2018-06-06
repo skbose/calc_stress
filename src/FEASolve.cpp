@@ -444,6 +444,34 @@ bool FEASolve::initImplicitNewmarkDense()
 		renderingModalMatrix->AddProjectSingleVertex(pulledVertex/3,
            	f[pulledVertex], f[pulledVertex + 1], f[pulledVertex + 2], fq);
 
+	// StVk forces and stiffness matrices
+    stVKReducedInternalForces = new StVKReducedInternalForces((appPtr->opts).in_cubic_polynomial_file_path.c_str());
+    stVKReducedStiffnessMatrix = new StVKReducedStiffnessMatrix(stVKReducedInternalForces);
+
+   	reducedStVKForceModel = new ReducedStVKForceModel(stVKReducedInternalForces, stVKReducedStiffnessMatrix);
+  	reducedLinearStVKForceModel = new ReducedLinearStVKForceModel(stVKReducedStiffnessMatrix);
+  	reducedForceModel = reducedStVKForceModel;
+
+  	massMatrix_f = (double*) calloc(r*r,sizeof(double));
+
+  	for(int i = 0; i < r; i++)
+  	{	
+    	massMatrix_f[ELT(r,i,i)] = 1.0;
+  	}
+
+	float const newmarkBeta = 0.25;
+	float const newmarkGamma = 0.5;
+	float const timestep = appPtr->opts.in_timestep;
+  	
+  	implicitNewmarkDense = new ImplicitNewmarkDense(r, timestep, massMatrix_f, reducedForceModel);
+
+  	u_prev = (double *) malloc(sizeof(double) * 3 * nRendering);
+
+  	implicitNewmarkDense->SetExternalForcesToZero();
+	implicitNewmarkDense->SetTimestep(timestep);
+	implicitNewmarkDense->SetNewmarkBeta(newmarkBeta);
+	implicitNewmarkDense->SetNewmarkGamma(newmarkGamma);
+
 	return true;
 }
 
@@ -477,7 +505,30 @@ bool FEASolve::destroyImplicitNewmarkDense()
 		w = NULL;
 	}
 
+	if (u_prev)
+	{
+		free(u_prev);
+		u_prev = NULL;
+	}
+
+	if (massMatrix)
+	{
+		free(massMatrix_f);
+		massMatrix_f = NULL;
+	}
+
 	isInitImplicitNewmarkDense = false;
+}
+
+void FEASolve::flushImplicitNewmarkDenseData()
+{
+	for (int i = 0; i < r; i++)
+		fq[i] = 0;
+
+	for (int i = 0; i < 3 * getNumVertices(); i++)
+		u_prev[i] = u[i] = 0.0;
+
+	implicitNewmarkDense->SetExternalForcesToZero();
 }
 
 bool FEASolve::runImplicitNewmarkDense()
@@ -490,33 +541,7 @@ bool FEASolve::runImplicitNewmarkDense()
 			return false;
 		}
 
-	double * massMatrix = (double*) calloc(r*r,sizeof(double));
-
-  	for(int i = 0; i < r; i++)
-  	{	
-    	massMatrix[ELT(r,i,i)] = 1.0;
-  	}
-
-    StVKReducedInternalForces *stVKReducedInternalForces = new StVKReducedInternalForces((appPtr->opts).in_cubic_polynomial_file_path.c_str());
-    StVKReducedStiffnessMatrix *stVKReducedStiffnessMatrix = new StVKReducedStiffnessMatrix(stVKReducedInternalForces);
-
-   	ReducedStVKForceModel *reducedStVKForceModel = new ReducedStVKForceModel(stVKReducedInternalForces, stVKReducedStiffnessMatrix);
-  	ReducedLinearStVKForceModel *reducedLinearStVKForceModel = new ReducedLinearStVKForceModel(stVKReducedStiffnessMatrix);
-  	ReducedForceModel *reducedForceModel = reducedStVKForceModel;
-
-	float const newmarkBeta = 0.25;
-	float const newmarkGamma = 0.5;
 	float const timestep = appPtr->opts.in_timestep;
-  	
-  	ImplicitNewmarkDense *implicitNewmarkDense = new ImplicitNewmarkDense(r, timestep, massMatrix, reducedForceModel);
-
-  	double * u_prev = (double *) malloc(sizeof(double) * 3 * nRendering);
-
-  	implicitNewmarkDense->SetExternalForcesToZero();
-	implicitNewmarkDense->SetTimestep(timestep);
-	implicitNewmarkDense->SetNewmarkBeta(newmarkBeta);
-	implicitNewmarkDense->SetNewmarkGamma(newmarkGamma);
-
 	Timer tmr;
 
 	double springconst = 10000;	// spring constant
@@ -591,6 +616,7 @@ bool FEASolve::runImplicitNewmarkDense()
 	cout << "Time to run the solver: " << t << endl;
 
 	calculateDisplacements(implicitNewmarkDense);
+	// flushImplicitNewmarkDenseData();
 }
 
 bool FEASolve::calculateDisplacements(ImplicitNewmarkDense *implicitNewmarkDense)
@@ -674,4 +700,9 @@ void FEASolve::updateWeightVector(double * dw)
 	{
 		w[i] = dw[i];
 	}
+}
+
+int FEASolve::getNumSamplesForOptimizer() const
+{
+	return appPtr->opts.num_samples_for_optimizer;
 }

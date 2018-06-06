@@ -23,6 +23,7 @@ SimulatorApp::optsToString() const
 		<< "\n  output-dir = " << opts.output_dir
 		<< "\n  support vertices directory = " << opts.in_support_vertices_directory
 		<< "\n  one-indexed = " << opts.oneIndexed
+		<< "\n  number of iterations for the optimizer: " << opts.num_samples_for_optimizer
 		<< "\n";
 
 		return oss.str();
@@ -63,6 +64,7 @@ SimulatorApp::parseOptions(std::vector<std::string> const & args)
 		("output_dir", po::value<std::string>(&opts.output_dir)->default_value("./new_output_dir"), "Output directory path to write the output files.")
 		("s_verts", po::value<std::string>(&opts.in_support_vertices_directory),"path to the directory containing support vertices (turn on the spring penalty based support)")
 		("one_indexed, oi", "The vertices are one indexed (default is 0 indexed).")
+		("num_samples, ns", po::value<int>(&opts.num_samples_for_optimizer)->default_value(0), "Number of iterations you want the MH algorithm to make to find the optimal region set.")
 	;
 
 	po::options_description desc;

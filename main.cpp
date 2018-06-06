@@ -27,17 +27,21 @@ int main(int argc, char * argv[])
 		// mass copied from the experimental version for comparison.
 		solv.setMass(87.5668);
 		solv.initImplicitNewmarkDense();
-		solv.runImplicitNewmarkDense();
+		
+		if (opts_.num_samples_for_optimizer > 0)
+		{
+			// find the optimal solution
+			Optimizer opt(&solv);
+			opt.searchOptimum();
+		}
+		else
+			solv.runImplicitNewmarkDense();
 
-		string o_mesh_file_path = "mesh.deform.obj";
-		solv.applyDeformationAndSaveSurfaceMesh(o_mesh_file_path);
+		// string o_mesh_file_path = "mesh.deform.obj";
+		// solv.applyDeformationAndSaveSurfaceMesh(o_mesh_file_path);
 
-		string o_deformations_file_path = "deformations.out";
-		solv.saveDeformationsPerVertex(o_deformations_file_path);
-
-		// find the optimal solution
-		Optimizer opt(&solv);
-		opt.searchOptimum();
+		// string o_deformations_file_path = "deformations.out";
+		// solv.saveDeformationsPerVertex(o_deformations_file_path);
 	}
 	
 	return 0;
