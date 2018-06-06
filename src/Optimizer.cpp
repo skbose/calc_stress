@@ -24,7 +24,6 @@ bool Optimizer::searchOptimum()
 
 		for (int i = 0; i < dim; i ++)
 		{
-
 			w[i] += weights(i, sample);
 			
 			// cap values to appropriate range
