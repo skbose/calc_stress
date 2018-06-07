@@ -43,6 +43,9 @@ FEASolve::FEASolve(SimulatorApp * ptr)
 	numFixedVertices = -1;
 	totalStrainEnergy = maxStrainEnergy = -1;
 	visualMesh = NULL;
+
+	m = new triangle_mesh_t(appPtr->opts.in_rendering_mesh_file_path);
+	
 	f = NULL;		// needs a "free" call.
 	fq = springForce = NULL;	// needs a "free" call
 
@@ -331,10 +334,17 @@ FEASolve::~FEASolve()
 		free(u);
 		u = NULL;
 	}
+
 	if (constrainedVertexList)
 	{	
 		free(constrainedVertexList);
 		constrainedVertexList = NULL;
+	}
+
+	if (m)
+	{
+		delete m;
+		m = NULL;
 	}	
 }
 
@@ -789,13 +799,20 @@ int FEASolve::getNumSamplesForOptimizer() const
 
 double FEASolve::getStress() const
 {
+	// load the obj mesh to do stress calculations on the mesh
+	triangle_mesh_t * m = new triangle_mesh_t(appPtr->opts.in_rendering_mesh_file_path);
+	
+	m->loadDeformation(u);
+	m->calculateLocalAreaDeformationAboutPoints();
+	m->laplacianOnDeformations();
+
 	double stress = 0.0;
 
 	for (int i = 0; i < getNumVertices(); i++)
 	{
-		Eigen::Vector3d d_vec(u[3*i+0], u[3*i+1], u[3*i+2]);
+		Eigen::Vector3d d_vec(m->vertices[i]->lx, m->vertices[i]->ly, m->vertices[i]->lz);
 		// stress += d_vec.norm();
-		stress += (-d_vec(1));
+		stress += (m->vertices[i]->neighborAreaDeformation);
 	}
 
 	return stress;

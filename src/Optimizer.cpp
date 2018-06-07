@@ -13,7 +13,7 @@ bool Optimizer::searchOptimum()
 	srand(time(NULL));
 
 	// optimization const
-	double const C = 1.0;
+	double const C = 2;
 	
 	std::cout << "\nFinding optimal support regions.\n";
 
@@ -25,21 +25,11 @@ bool Optimizer::searchOptimum()
 	// vector to store the random update vector
 	Eigen::Matrix<double, Eigen::Dynamic, 1> wp(dim);
 	wp.fill(0.0);
- 
- 	solv->runImplicitNewmarkDense();
- 	double stress_high = solv->getStress();
-
- 	fill(w, 1.0);
-
- 	solv->setWeightVector(w);
- 	solv->runImplicitNewmarkDense();
- 	double stress_low = solv->getStress();
-
- 	fill(w, 0.0);
 
 	// free later
 	double * w_save = (double *) malloc(sizeof(double) * dim);
 
+	double test = 0.0;
 	for (int sample = 0; sample < num_samples; sample++)
 	{
 
@@ -56,29 +46,26 @@ bool Optimizer::searchOptimum()
 		}
 
 		solv->setWeightVector(w);
-
-		solv->runImplicitNewmarkDense();
-
-		
 		showWeightVector();
-
+		
+		solv->runImplicitNewmarkDense();
 
 		double stress = solv->getStress();
 
 		double rn = ((double) rand() / (double) RAND_MAX);
 		double norm = solv->getNormOfWeightVector();
 
+		stress += C * norm;
 		double const base = 10;
-		double cost = (stress - stress_low) / (stress_high - stress_low);	// ranges between [0,1] 
+		double const a = 8, b = 6;
 
-		std::cout << stress_low << " " << stress_high << " " << stress << endl; 
-		// log2(stress + C * norm);
+		double cost = 1.0/(1+exp(-(stress/a - b)));
 		
 		// more the cost, lesser is the prob of getting selected.
-		std::cout << "Random number: " << rn << ", Cost: " << exp(-cost) << std::endl;
-		std::cout << "Stress: " << stress << std::endl;
+		std::cout << "Random number: " << rn << ", Cost: " << cost << std::endl;
+		// std::cout << "Stress: " << stress << std::endl;
 		
-		if (rn >= exp(-cost))
+		if (rn >= cost)
 		{
 			for (int i = 0; i < dim; i++)
 				wp(i) = w_save[i];
@@ -89,9 +76,12 @@ bool Optimizer::searchOptimum()
 				wp(i) = w[i];
 		}
 
+		test += w[0];
+
 		solv->flushImplicitNewmarkDenseData();
 	}
 
+	std::cout << test / num_samples << std::endl;
 	// showWeightVector();
 	free(w_save);
 }

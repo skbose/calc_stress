@@ -16,6 +16,7 @@
 #include <Eigen/Dense>
 
 #include "SimulatorApp.hpp"
+#include "mesh.hpp"
 
 
 using namespace std;
@@ -97,6 +98,7 @@ class FEASolve
 		int computationRunning;			// parallelize the pre-computation. (not sure why required - ref Vega)
 		ObjMesh *visualMesh;			// original surface mesh. The deformation is later applied on this to visualize the output.
 		int oneIndexed;					// veg file is 0 indexed or 1 indexed.
+		triangle_mesh_t * m;
 		
 		// stores the proportion of mass that should be used for a particular vertex
 		// in order to calculate the gravitational force on it.
