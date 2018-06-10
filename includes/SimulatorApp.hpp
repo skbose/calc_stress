@@ -5,8 +5,11 @@
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include "Thea/FilePath.hpp"
 #include "Thea/FileSystem.hpp"
+#include "volumetricMeshLoader.h"
+#include "objMesh.h"
 
 namespace po = boost::program_options;
 
@@ -55,6 +58,7 @@ class SimulatorApp
 			int num_support_regions;
 			bool oneIndexed;
 			int num_samples_for_optimizer;
+			bool to_pts;
 		};
 
 		/** Get the set of program options. */

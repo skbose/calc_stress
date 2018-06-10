@@ -1,5 +1,6 @@
 #include "includes/FEASolve.hpp"
 #include "includes/Optimizer.hpp"
+#include "includes/Utils.hpp"
 
 int main(int argc, char * argv[])
 {
@@ -7,10 +8,18 @@ int main(int argc, char * argv[])
 	if (!sim.parseOptions(argc, argv))
 		return -1;
 	
-	std::cout << sim.optsToString();
-
 	// FEASolve * solv = NULL;
 	SimulatorApp::Options const opts_ = sim.options();
+	
+	if (opts_.to_pts)
+	{
+		int oneIndexed = opts_.oneIndexed ? 1 : 0;
+		Utils::bouToPts(opts_.in_veg_file_path, opts_.support_vertices_files, opts_.in_simulation_mesh_file_path, oneIndexed);
+
+		return 0;
+	}
+
+	std::cout << sim.optsToString();
 
 	if (opts_.in_slow)
 	{

@@ -49,6 +49,7 @@ SimulatorApp::parseOptions(std::vector<std::string> const & args)
 	visible.add_options()
 		("help,h", "produce help message")
 		("version,v", "Print the program version")
+		("to_pts", "Use mesh utils to sample the points on the surface mesh from the veg file")
 		("conf", po::value<std::string>(&conf_file)->default_value("solve.conf"), "Configuration file (overridden by duplicate cmdline options)")
 		("steps", po::value<int>(&opts.in_steps), "set number of iterations for the solver.")
 		("timestep", po::value<double>(&opts.in_timestep), "Set the timestep per iteration of the solver.")
@@ -96,6 +97,32 @@ SimulatorApp::parseOptions(std::vector<std::string> const & args)
 	po::notify(vm);
 
 	bool quit = false;
+
+
+	opts.to_pts = vm.count("to_pts") > 0;
+	
+	if (opts.to_pts)
+	{
+		if ((vm.count("veg") > 0) && vm.count("s_verts") > 0 && vm.count("sim_mesh") > 0)
+		{
+			opts.in_simulation_mesh_file_path = Thea::FileSystem::resolve(opts.in_simulation_mesh_file_path);
+			opts.in_veg_file_path = Thea::FileSystem::resolve(opts.in_veg_file_path);
+			opts.in_support_vertices_directory = Thea::FileSystem::resolve(opts.in_support_vertices_directory);
+			int ret = Thea::FileSystem::getDirectoryContents(opts.in_support_vertices_directory, opts.support_vertices_files, -1, "*.bou");
+			opts.num_support_regions = ret;
+			opts.oneIndexed = vm.count("one-indexed") > 0;
+
+			return true;
+		}
+		else
+		{
+			THEA_CONSOLE << "Please provide the veg file, the support vertices folder and the simulation mesh to generate the pts files.";
+			THEA_CONSOLE << "./solve --to_pts --veg <filename.veg> --sim_mesh <mesh.obj> --s_verts <path_to_folder>" << std::endl;
+			THEA_CONSOLE << visible;  // should be intercepted by out
+			
+			return false;
+		}
+	}
 
 	if (vm.count("version") > 0)
 	{
