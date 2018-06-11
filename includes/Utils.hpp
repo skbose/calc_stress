@@ -15,6 +15,8 @@ class Utils
 			VolumetricMesh * vm = VolumetricMeshLoader::load(vegf.c_str());
 			ObjMesh * m = new ObjMesh(meshf);
 
+			// m->computePseudoNormals();
+
 			for (int i = 0; i < s_vertsf.size(); i++)
 			{
 				vector<int> data_vm;
@@ -28,8 +30,18 @@ class Utils
 
 					int surf_mesh_index = m->getClosestVertex(v, NULL);
 					Vec3d pos = m->getPosition(surf_mesh_index);
-
-					data_m.push_back(pos);
+					Vec3d normal = m->getNormal(surf_mesh_index);
+					Vec3d y_ref(0, 1, 0);
+					Vec3d z_ref(0, 0, 1);
+					Vec3d x_ref(1, 0, 0);
+					
+					double angle = dot(-y_ref, normal);
+					if (angle >= 0 && angle <= 1)
+					{
+						angle = dot(-z_ref, normal);
+						if (angle >= 0 && angle <= 1)
+							data_m.push_back(pos);
+					}
 				}
 
 				outCSV(s_vertsf[i], data_m);

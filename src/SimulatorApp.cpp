@@ -63,7 +63,7 @@ SimulatorApp::parseOptions(std::vector<std::string> const & args)
 		("render_mesh", po::value<std::string>(&opts.in_rendering_mesh_file_path), "Rendering mesh file path (.obj)")
 		("modal_matrix", po::value<std::string>(&opts.in_modal_matrix_file_path), "Modal Matrix file path (.URendering.float)")
 		("output_dir", po::value<std::string>(&opts.output_dir)->default_value("./new_output_dir"), "Output directory path to write the output files.")
-		("s_verts", po::value<std::string>(&opts.in_support_vertices_directory),"path to the directory containing support vertices (turn on the spring penalty based support)")
+		("s_verts", po::value<std::string>(&opts.in_support_vertices_directory),"path to the directory containing support vertices (turn on the spring penalty based support)") 
 		("one_indexed, oi", "The vertices are one indexed (default is 0 indexed).")
 		("num_samples, ns", po::value<int>(&opts.num_samples_for_optimizer)->default_value(0), "Number of iterations you want the MH algorithm to make to find the optimal region set.")
 	;

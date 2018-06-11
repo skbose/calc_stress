@@ -736,6 +736,7 @@ bool FEASolve::saveDeformationsPerVertex(std::string const &path) const
 	{
 		out << u[i] << " " << u[i+1] << " " << u[i+2] << endl;
 	}
+	std::cout << "Saved deformations to: " << path << endl;
 }
 
 void FEASolve::setMass(double const &mass_)
@@ -761,7 +762,10 @@ bool FEASolve::readSupportVertices()
 		num_s_verts.push_back(0);
 		supportVertices.push_back(NULL);
 
-		w[i] = 0.0;	// initially none are important
+		if (appPtr->opts.num_samples_for_optimizer > 0)
+			w[i] = 0.0;	// initially none are important
+		else
+			w[i] = 1.0;	// all are important
 		LoadList::load((appPtr->opts).support_vertices_files[i].c_str(), &num_s_verts[i], &supportVertices[i]);
 	}
 
@@ -797,10 +801,10 @@ int FEASolve::getNumSamplesForOptimizer() const
 	return appPtr->opts.num_samples_for_optimizer;
 }
 
-double FEASolve::getStress() const
+double FEASolve::getStress()
 {
 	// load the obj mesh to do stress calculations on the mesh
-	triangle_mesh_t * m = new triangle_mesh_t(appPtr->opts.in_rendering_mesh_file_path);
+	m = new triangle_mesh_t(appPtr->opts.in_rendering_mesh_file_path);
 	
 	m->loadDeformation(u);
 	m->calculateLocalAreaDeformationAboutPoints();
@@ -811,7 +815,7 @@ double FEASolve::getStress() const
 	for (int i = 0; i < getNumVertices(); i++)
 	{
 		Eigen::Vector3d d_vec(m->vertices[i]->lx, m->vertices[i]->ly, m->vertices[i]->lz);
-		// stress += d_vec.norm();
+		stress += d_vec.norm();
 		stress += (m->vertices[i]->neighborAreaDeformation);
 	}
 
@@ -828,4 +832,9 @@ double FEASolve::getNormOfWeightVector() const
 	}
 
 	return norm;
+}
+
+double * FEASolve::getDeformations() const
+{
+	return u;
 }

@@ -98,7 +98,6 @@ class FEASolve
 		int computationRunning;			// parallelize the pre-computation. (not sure why required - ref Vega)
 		ObjMesh *visualMesh;			// original surface mesh. The deformation is later applied on this to visualize the output.
 		int oneIndexed;					// veg file is 0 indexed or 1 indexed.
-		triangle_mesh_t * m;
 		
 		// stores the proportion of mass that should be used for a particular vertex
 		// in order to calculate the gravitational force on it.
@@ -146,6 +145,10 @@ class FEASolve
 		void RemoveSixRigidModes(int numVectors, double * x);
 
 	public:
+
+		// class for misc utilities. Should be accessible from outside.
+		triangle_mesh_t * m;
+		
 		FEASolve(SimulatorApp * ptr);	// param constructor - ptr read to access opts.
 		~FEASolve();					// destructor
 
@@ -170,13 +173,15 @@ class FEASolve
 		// returns the mass estimate (in case of surface mesh)
 		double getMass() const;
 
-		double getStress() const;
+		double getStress();
 		// returns the importance scores of the regions
 		double * getWeightVector(int &n_) const;
 
 		double getNormOfWeightVector() const;
 		
 		int getNumSamplesForOptimizer() const;
+
+		double * getDeformations() const;
 
 		void updateWeightVector(double * dw);
 		void setWeightVector(double * w_);

@@ -49,11 +49,20 @@ int main(int argc, char * argv[])
 			cout << "Stress: " << solv.getStress() << endl;
 		}
 
-		// string o_mesh_file_path = "mesh.deform.obj";
-		// solv.applyDeformationAndSaveSurfaceMesh(o_mesh_file_path);
+		string o_mesh_file_path = "mesh.deform.obj";
+		solv.applyDeformationAndSaveSurfaceMesh(o_mesh_file_path);
 
-		// string o_deformations_file_path = "deformations.out";
-		// solv.saveDeformationsPerVertex(o_deformations_file_path);
+		string o_deformations_file_path = "deformations.out";
+		solv.saveDeformationsPerVertex(o_deformations_file_path);
+
+		string o_area_def_feat = "area_deformations.feat";
+		solv.m->saveLocalAreaDeformationAboutPointsAsFeature(o_area_def_feat);
+
+		string o_point_displ_norm = "points_displc.feat";
+		solv.m->savePointMovementMagnitudeAsFeature(o_point_displ_norm);
+
+		string o_laplac_feat = "points_displc_laplace.feat";
+		solv.m->saveLaplacianVectorNormAsFeature(o_laplac_feat);
 	}
 	
 	return 0;

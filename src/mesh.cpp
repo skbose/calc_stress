@@ -471,7 +471,9 @@ bool triangle_mesh_t::saveLocalAreaDeformationAboutPointsAsFeature(std::string c
     f << x << " " << y << " " << z << " " << (*it)->neighborAreaDeformation << std::endl; 
   }
 
-  f.close(); 
+  f.close();
+
+  std::cout << "Area distortion written to: " << path << std::endl; 
 }
 
 bool triangle_mesh_t::savePointMovementMagnitudeAsFeature(std::string const &path, int max_points)
@@ -499,10 +501,12 @@ bool triangle_mesh_t::savePointMovementMagnitudeAsFeature(std::string const &pat
 		Eigen::Vector3d movementDir(ux, uy, uz);
 		double movementDirNorm = movementDir.norm();
 
-		f << x << " " << y << " " << z << " " << movementDir << std::endl; 
+		f << x << " " << y << " " << z << " " << movementDirNorm << std::endl; 
 	}
 
-	f.close(); 
+	f.close();
+
+  std::cout << "Points displacement written to: " << path << std::endl;
 }
 
 void triangle_mesh_t::operator-(triangle_mesh_t const &m)
