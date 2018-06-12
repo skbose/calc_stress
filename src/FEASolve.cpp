@@ -633,8 +633,8 @@ bool FEASolve::runImplicitNewmarkDense()
 	float const timestep = appPtr->opts.in_timestep;
 	Timer tmr;
 
-	double springconst = 10000;	// spring constant
-	double velocitydampingconst = 5;	// velocity damping constant
+	double springconst = (appPtr->opts).in_springConst;	// spring constant
+	double velocitydampingconst = 0;	// velocity damping constant
 
 	for (int i = 0; i < (appPtr->opts).in_steps; i++)
 	{

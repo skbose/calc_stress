@@ -94,6 +94,8 @@ class triangle_mesh_t
 
 		bool savePointAndDeformation(std::string const &path, int max_points=-1);
 
+		bool saveCombinedStressPerVertex(std::string const &path, int max_points=-1);
+
 		// operator overloading to display the mesh deformation.
 		void operator-(triangle_mesh_t const &m);
 };

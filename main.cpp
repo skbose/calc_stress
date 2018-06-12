@@ -63,6 +63,9 @@ int main(int argc, char * argv[])
 
 		string o_laplac_feat = "points_displc_laplace.feat";
 		solv.m->saveLaplacianVectorNormAsFeature(o_laplac_feat);
+
+		string o_combined_stress_feat = "points_combined_stress.feat";
+		solv.m->saveCombinedStressPerVertex(o_combined_stress_feat);
 	}
 	
 	return 0;

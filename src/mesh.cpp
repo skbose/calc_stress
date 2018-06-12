@@ -557,3 +557,36 @@ bool triangle_mesh_t::savePointAndDeformation(std::string const &path, int max_p
   
   return true;
 }
+
+bool triangle_mesh_t::saveCombinedStressPerVertex(std::string const &path, int max_points)
+{
+  std::ofstream f(path);
+  
+  if (!f)
+  {
+    std::cerr << "Couldn't open file " << path << std::endl;
+    return false;
+  }
+
+  int num_points = 0;
+  bool disp_all = max_points == -1 ? true : false;
+  for (auto it = vertices.begin(); (num_points < max_points || disp_all) && it != vertices.end(); ++it, num_points++)
+  {
+    double x = (*it)->pos.x();
+    double y = (*it)->pos.y();
+    double z = (*it)->pos.z();
+
+    double ux = (*it)->ux;
+    double uy = (*it)->uy;
+    double uz = (*it)->uz;
+
+    Eigen::Vector3d movementDir(ux, uy, uz);
+    double movementDirNorm = movementDir.norm();
+
+    f << x << " " << y << " " << z << " " << (*it)->neighborAreaDeformation + movementDirNorm << std::endl; 
+  }
+
+  f.close();
+
+  std::cout << "Combined Distortion features written to: " << path << std::endl; 
+}

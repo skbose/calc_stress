@@ -59,6 +59,7 @@ class SimulatorApp
 			bool oneIndexed;
 			int num_samples_for_optimizer;
 			bool to_pts;
+			double in_springConst;
 		};
 
 		/** Get the set of program options. */
